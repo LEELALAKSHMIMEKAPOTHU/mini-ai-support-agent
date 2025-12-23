@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
-import { generateReply } from './llm';
+import { generateReply, generateStream } from './llm';
 import { z } from 'zod';
 
 dotenv.config();
@@ -20,6 +20,11 @@ const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
+
+// Root endpoint for health check
+app.get('/', (req, res) => {
+  res.send('GadgetStore API is running 🚀<br>Please visit <a href="http://localhost:5173">http://localhost:5173</a> to use the Chat UI.');
+});
 
 // Validation schema
 const messageSchema = z.object({
@@ -199,24 +204,10 @@ app.get('/chat/stream', async (req, res) => {
       return;
     }
 
-    const stream = await require('openai').default.prototype.chat.completions.create.call(
-      new (require('openai').default)({ apiKey: process.env.OPENAI_API_KEY }),
-      {
-        model: 'gpt-3.5-turbo',
-        messages: [
-          { role: 'system', content: `You are a helpful support agent for "GadgetStore". Answer clearly and concisely.\n- Shipping: USA free over $50; $5 otherwise; international $15.\n- Returns: 30 days if unused and in original packaging.\n- Support Hours: Mon-Fri 9am-5pm EST.\n- Contact: support@gadgetstore.com` },
-          ...contextMessages,
-          { role: 'user', content: processedMessage },
-        ],
-        max_tokens: 150,
-        temperature: 0.7,
-        stream: true,
-      }
-    );
-
+    const stream = generateStream(contextMessages, processedMessage);
     let fullText = '';
-    for await (const part of stream) {
-      const chunk = part.choices?.[0]?.delta?.content || '';
+
+    for await (const chunk of stream) {
       if (chunk) {
         fullText += chunk;
         res.write(`data: ${JSON.stringify(chunk)}\n\n`);
@@ -239,6 +230,7 @@ app.get('/chat/stream', async (req, res) => {
     clearInterval(heartbeat);
     res.end();
   } catch (error) {
+    console.error('Stream Endpoint Error:', error);
     res.write(`event: error\ndata: ${JSON.stringify({ error: 'Stream failed' })}\n\n`);
     res.end();
   }

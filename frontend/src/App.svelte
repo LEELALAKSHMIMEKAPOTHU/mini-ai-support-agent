@@ -62,9 +62,7 @@
         const es = new EventSource(url);
         let receivedAny = false;
         let watchdog: number | undefined = undefined;
-        const resetWatchdog = () => {
-          if (watchdog) clearTimeout(watchdog);
-          watchdog = setTimeout(async () => {
+        const fallbackLogic = async () => {
             try {
               es.close();
               const res = await fetch(`${BACKEND_URL}/chat/message`, {
@@ -87,11 +85,21 @@
             } finally {
               loading = false;
             }
-          }, 10000) as unknown as number;
+        };
+
+        const resetWatchdog = () => {
+          if (watchdog) clearTimeout(watchdog);
+          watchdog = setTimeout(fallbackLogic, 10000) as unknown as number;
         };
         resetWatchdog();
         es.onmessage = (e) => {
-          const chunk = e.data;
+          let chunk = e.data;
+          try {
+             // If the chunk is a quoted string (JSON), parse it to get the raw string
+             if (chunk.startsWith('"') && chunk.endsWith('"')) {
+                chunk = JSON.parse(chunk);
+             }
+          } catch {}
           receivedAny = true;
           resetWatchdog();
           messages = messages.map((m, i) => i === aiIndex ? { sender: 'ai', content: m.content + chunk } : m);
@@ -114,7 +122,8 @@
         es.onerror = () => {
           messages = messages.map((m, i) => i === aiIndex ? { sender: 'ai', content: m.content || 'Streaming error. Falling back...' } : m);
           if (watchdog) clearTimeout(watchdog);
-          resetWatchdog();
+          // Execute fallback immediately instead of waiting
+          fallbackLogic();
           es.close();
         };
       } else {
