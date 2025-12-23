@@ -204,18 +204,18 @@
                 : 'bg-gray-100 text-gray-800 rounded-bl-none border border-gray-200'
             }`}
           >
-            {msg.content}
+            {#if msg.sender === 'ai' && msg.content === '' && loading}
+              <div class="typing-indicator flex gap-1 p-1">
+                <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
+                <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
+                <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
+              </div>
+            {:else}
+              {msg.content}
+            {/if}
           </div>
         </div>
       {/each}
-
-      {#if loading}
-        <div class="flex justify-start">
-          <div class="bg-gray-100 text-gray-500 rounded-2xl rounded-bl-none px-4 py-2 text-sm border border-gray-200">
-            Thinking...
-          </div>
-        </div>
-      {/if}
     </div>
 
     <!-- Input Area -->
