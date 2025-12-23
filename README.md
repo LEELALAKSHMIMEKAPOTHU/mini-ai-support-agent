@@ -4,7 +4,7 @@ A small web app that simulates a customer support chat where an AI agent answers
 
 ## Tech Stack
 
-- **Backend:** Node.js, TypeScript, Express, Prisma, SQLite
+- **Backend:** Node.js, TypeScript, Express, Prisma (recommended: Postgres in production)
 - **Frontend:** Svelte (Vite), Tailwind CSS, TypeScript
 - **AI:** OpenAI API (gpt-3.5-turbo)
 
@@ -36,7 +36,7 @@ cd <repository-directory>
 3. Create a `.env` file in the `backend` directory:
    ```env
    PORT=3001
-   DATABASE_URL="file:./dev.db"
+   DATABASE_URL="postgresql://user:pass@host:5432/dbname"
    OPENAI_API_KEY="your_openai_api_key_here"
    ```
 4. Initialize the database:
